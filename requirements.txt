@@ -1,0 +1,7 @@
+python-docx
+psycopg2
+sentence-transformers
+tqdm
+dotenv
+pymupdf
+openpyxl
