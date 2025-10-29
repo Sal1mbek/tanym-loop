@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Tanym Loop — MVP UI</title>
+<style>
+  :root{
+    --ink:#0f172a; --muted:#64748b; --line:#e2e8f0;
+    --bg:#ffffff; --bg-soft:#f7fafc; --accent:#3b82f6;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;color:var(--ink);background:var(--bg-soft)}
+  .wrap{max-width:1080px;margin:0 auto;padding:16px}
+  /* Header */
+  .header{display:flex;gap:14px;align-items:flex-start;padding:14px 0 12px;border-bottom:1px solid var(--line)}
+  .logo{width:60px;height:60px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+        background:linear-gradient(180deg,#eef2ff,#f1f5f9);border:1px solid var(--line);font-weight:800}
+  .h-title{font-size:22px;font-weight:800;line-height:1.1}
+  .h-sub{color:var(--muted)}
+  .h-note{color:var(--muted);font-size:12px;margin-top:2px}
+  /* Tabs */
+  .tabs{display:flex;gap:8px;margin:12px 0}
+  .tab-btn{appearance:none;border:1px solid var(--line);background:var(--bg);color:var(--ink);
+           padding:8px 12px;border-radius:10px;cursor:pointer}
+  .tab-btn.active{background:#fff;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .panel{display:none}
+  .panel.active{display:block}
+  /* Panels */
+  .card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px}
+  .hero{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:16px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media (max-width:880px){ .grid{grid-template-columns:1fr} }
+  h1,h2,h3{margin:0 0 8px}
+  label{display:block;font-weight:600;margin:6px 0 4px}
+  textarea,input[type="text"]{
+    width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:10px; background:#fff;
+    outline:none; box-shadow:none;
+  }
+  textarea{min-height:120px;resize:vertical}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .btn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:10px 14px;cursor:pointer}
+  .btn.primary{background:#fff;border-color:#cbd5e1;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .btn:disabled{opacity:.6;cursor:not-allowed}
+  .hint{color:var(--muted);font-size:12px}
+  /* Drag & Drop */
+  .drop{
+    border:2px dashed #cbd5e1;border-radius:14px;background:#fff;
+    padding:24px;text-align:center;color:var(--muted);transition:.15s ease all
+  }
+  .drop.drag{border-color:var(--accent);color:var(--ink);background:#f8fbff}
+  .pill{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);
+        border-radius:999px;padding:4px 10px;background:#fff}
+  /* Footer */
+  .footer{margin-top:16px;padding:12px 0;border-top:1px solid var(--line);display:flex;gap:10px;flex-wrap:wrap;justify-content:space-between;color:var(--muted)}
+  .links a{color:var(--ink);text-decoration:none;border-bottom:1px dashed var(--line)}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <!-- Header -->
+    <header class="header" aria-label="Tanym Loop header">
+      <div class="logo" aria-hidden="true">TL</div>
+      <div>
+        <div class="h-title">Tanym Loop — локальная RAG-платформа</div>
+        <div class="h-sub">Умный поиск и ответы по вашим документам • данные остаются внутри организации</div>
+      </div>
+    </header>
+
+    <!-- Tabs -->
+    <nav class="tabs" role="tablist">
+      <button class="tab-btn active" data-tab="welcome" role="tab" aria-selected="true">🏠 Приветствие</button>
+      <button class="tab-btn" data-tab="qa" role="tab">💬 Поиск / Ответ</button>
+      <button class="tab-btn" data-tab="docs" role="tab">📂 Документы</button>
+    </nav>
+
+    <!-- Welcome -->
+    <section id="welcome" class="panel active" role="tabpanel" aria-labelledby="tab-welcome">
+      <div class="grid">
+        <div class="hero">
+          <h1>Добро пожаловать в Tanym Loop</h1>
+          <p>Самообучающаяся RAG-система: точные ответы на основе ваших документов.</p>
+          <ul>
+            <li>Локально и безопасно — данные не покидают периметр</li>
+            <li>Казахстанский контекст — законы, госуслуги, внутренние регламенты</li>
+            <li>Самообучение — качество ответов растёт с обратной связью</li>
+          </ul>
+          <div class="row" style="margin-top:6px">
+            <span class="pill">🔒 Конфиденциально</span>
+            <span class="pill">🧠 Self-learning</span>
+            <span class="pill">📚 RAG</span>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Как начать</h3>
+          <ol style="margin:6px 0 0">
+            <li>Откройте вкладку «Поиск / Ответ» и задайте вопрос</li>
+            <li>Во вкладке «Документы» загрузите свои файлы (PDF/DOCX/XLSX/TXT)</li>
+            <li>Оставляйте обратную связь — система будет точнее</li>
+          </ol>
+        </div>
+      </div>
+    </section>
+
+    <!-- Q&A -->
+    <section id="qa" class="panel" role="tabpanel" aria-labelledby="tab-qa">
+      <div class="card">
+        <h2>Вопрос / Ответ</h2>
+        <div class="grid" style="margin-top:8px">
+          <div>
+            <label for="q">Введите вопрос</label>
+            <textarea id="q" placeholder="Например: Как оформить доверенность у нотариуса?"></textarea>
+            <div class="row" style="margin-top:8px">
+              <label class="row" style="gap:6px;margin:0">
+                <input id="showSimilar" type="checkbox" checked />
+                <span>Показывать похожие статьи</span>
+              </label>
+              <button id="askBtn" class="btn primary">Задать вопрос</button>
+              <button id="clearBtn" class="btn">Очистить</button>
+            </div>
+          </div>
+          <div>
+            <label for="ans">Ответ ассистента</label>
+            <textarea id="ans" readonly placeholder="💡 Здесь появится ответ ассистента."></textarea>
+            <div class="hint" style="margin-top:6px">Ответ генерируется на основе ваших документов (демо-режим).</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:10px">
+        <h3>Похожие статьи и полезные ссылки</h3>
+        <div id="sources" class="hint" style="margin-top:4px">📎 Здесь будут показаны источники и похожие статьи.</div>
+      </div>
+
+      <div class="card" style="margin-top:10px">
+        <h3>✍️ Обратная связь</h3>
+        <div class="grid" style="margin-top:6px">
+          <div>
+            <label for="rating">Оценка ответа</label>
+            <input id="rating" type="range" min="1" max="5" value="5" />
+          </div>
+          <div>
+            <label for="corr">Правильный ответ (если есть)</label>
+            <input id="corr" type="text" placeholder="Введите корректный вариант ответа" />
+          </div>
+        </div>
+        <label for="comment" style="margin-top:6px">Комментарий</label>
+        <input id="comment" type="text" placeholder="Что было полезно, чего не хватило…" />
+        <div class="row" style="margin-top:8px">
+          <button id="sendFb" class="btn">Отправить отзыв</button>
+          <span id="fbOut" class="hint"></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Documents -->
+    <section id="docs" class="panel" role="tabpanel" aria-labelledby="tab-docs">
+      <div class="card">
+        <h2>База знаний организации</h2>
+        <div class="grid" style="margin-top:8px">
+          <div>
+            <div id="drop" class="drop" tabindex="0" aria-label="Зона для перетаскивания файлов">
+              <div style="font-weight:600">Перетащите файлы сюда</div>
+              <div class="hint">Поддержка: PDF, DOCX, XLSX, TXT</div>
+              <div class="hint">Или нажмите, чтобы выбрать файлы</div>
+              <input id="fileInput" type="file" multiple style="display:none" />
+            </div>
+            <div class="row" style="margin-top:8px">
+              <select id="sourceTag" class="btn" aria-label="Метка источника">
+                <option value="user">user</option>
+                <option value="dataset">dataset</option>
+                <option value="feedback_high_rating">feedback_high_rating</option>
+                <option value="other">other</option>
+              </select>
+              <button id="indexBtn" class="btn primary">Индексировать (демо)</button>
+            </div>
+          </div>
+          <div>
+            <div class="card" style="border:none;padding:0">
+              <h3>Рекомендации</h3>
+              <ul style="margin:6px 0 0">
+                <li>Избегайте сканов без распознавания текста</li>
+                <li>Разбивайте длинные файлы на логические главы</li>
+                <li>Добавляйте ссылки-источники в метаданные</li>
+                <li>Обновляйте документы — индекс можно пере-строить</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div id="idxOut" class="hint" style="margin-top:10px"></div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer" aria-label="Footer">
+      <div>© 2025 True Masters • Tanym Loop</div>
+      <div class="links">
+        <a href="https://truemasters.kz" target="_blank" rel="noopener">Tanym Loop</a> ·
+        <a href="mailto:truemasters@inbox.ru">Свяжитесь с нами</a> ·
+        <a href="#" onclick="alert('Пока заглушка');return false;">Документация</a>
+      </div>
+    </footer>
+  </div>
+
+<script>
+  const API_BASE = ""; // тот же хост, где открыт HTML. Если вынесешь отдельно: "http://127.0.0.1:8000"
+
+  // Переменные для передачи фидбека
+  let lastQuestion = "";
+  let lastAnswer = "";
+
+  // Табы
+  document.querySelectorAll('.tab-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById(btn.dataset.tab).classList.add('active');
+    });
+  });
+
+  // Q&A
+  const askBtn = document.getElementById('askBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  askBtn?.addEventListener('click', async ()=>{
+    const q = document.getElementById('q').value.trim();
+    const show = document.getElementById('showSimilar').checked;
+    const ansEl = document.getElementById('ans');
+    const srcEl = document.getElementById('sources');
+
+    if(!q){ ansEl.value = "❌ Введите вопрос."; return; }
+
+    try{
+      askBtn.disabled = true; askBtn.textContent = "Думаю…";
+      const fd = new FormData();
+      fd.append("question", q);
+      fd.append("show_articles", String(show));
+
+      const resp = await fetch(`${API_BASE}/ask`, { method:"POST", body: fd });
+      if(!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const data = await resp.json();
+
+      ansEl.value = data.answer || "";
+      srcEl.textContent = ""; // очистим
+      if(data.sources_md){
+        // очень простой рендер: без Markdown. Если нужно — подключим md-рендер позже
+        srcEl.textContent = data.sources_md;
+      }
+
+      lastQuestion = q;
+      lastAnswer = data.answer || "";
+    }catch(e){
+      console.error(e);
+      ansEl.value = "⚠️ Ошибка при запросе к API.";
+    }finally{
+      askBtn.disabled = false; askBtn.textContent = "Задать вопрос";
+    }
+  });
+
+  clearBtn?.addEventListener('click', ()=>{
+    document.getElementById('q').value = "";
+    document.getElementById('ans').value = "";
+    document.getElementById('sources').textContent = "📎 Здесь будут показаны источники и похожие статьи.";
+    lastQuestion = ""; lastAnswer = "";
+  });
+
+  // Feedback
+  document.getElementById('sendFb')?.addEventListener('click', async ()=>{
+    const rating = document.getElementById('rating').value;
+    const comment = document.getElementById('comment').value;
+    const corr = document.getElementById('corr').value;
+    const fbOut = document.getElementById('fbOut');
+
+    if(!lastQuestion || !lastAnswer){
+      fbOut.textContent = "❌ Сначала задайте вопрос и получите ответ.";
+      setTimeout(()=>fbOut.textContent="", 3000);
+      return;
+    }
+
+    try{
+      const fd = new FormData();
+      fd.append("rating", rating);
+      fd.append("comment", comment);
+      fd.append("correct_answer", corr);
+      fd.append("question", lastQuestion);
+      fd.append("answer", lastAnswer);
+
+      const resp = await fetch(`${API_BASE}/feedback`, { method:"POST", body: fd });
+      const data = await resp.json();
+      fbOut.textContent = data.msg || "OK";
+    }catch(e){
+      console.error(e);
+      fbOut.textContent = "⚠️ Ошибка при отправке.";
+    }finally{
+      setTimeout(()=>fbOut.textContent="", 3000);
+    }
+  });
+
+  // Drag & Drop
+  const drop = document.getElementById('drop');
+  const fileInput = document.getElementById('fileInput');
+  let uploadedFiles = [];
+  function showNames(){
+    const names = uploadedFiles.map(f=>f.name).join(", ");
+    document.getElementById('idxOut').textContent = uploadedFiles.length ? `📚 Файлы: ${names}` : "";
+  }
+  ['dragenter','dragover'].forEach(ev=>{
+    drop.addEventListener(ev, e=>{ e.preventDefault(); drop.classList.add('drag');});
+  });
+  ;['dragleave','drop'].forEach(ev=>{
+    drop.addEventListener(ev, e=>{ e.preventDefault(); drop.classList.remove('drag');});
+  });
+  drop.addEventListener('drop', e=>{
+    const files = [...e.dataTransfer.files];
+    uploadedFiles = uploadedFiles.concat(files);
+    showNames();
+  });
+  drop.addEventListener('click', ()=> fileInput.click());
+  fileInput.addEventListener('change', e=>{
+    const files = [...e.target.files];
+    uploadedFiles = uploadedFiles.concat(files);
+    showNames();
+  });
+
+  document.getElementById('indexBtn')?.addEventListener('click', async ()=>{
+    const out = document.getElementById('idxOut');
+    const sourceTag = document.getElementById('sourceTag').value;
+
+    if(!uploadedFiles.length){
+      out.textContent = "⚠️ Нечего индексировать";
+      return;
+    }
+    try{
+      const fd = new FormData();
+      uploadedFiles.forEach(f=>fd.append("files", f));
+      fd.append("source_tag", sourceTag);
+
+      const resp = await fetch(`${API_BASE}/ingest`, { method:"POST", body: fd });
+      if(!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const data = await resp.json();
+      out.textContent = `✅ Загружено: ${data.saved.join(", ")} • Папка: ${data.folder}`;
+      uploadedFiles = []; // очищаем очередь
+    }catch(e){
+      console.error(e);
+      out.textContent = "⚠️ Ошибка при загрузке.";
+    }
+  });
+</script>
+
+</body>
+</html>
+

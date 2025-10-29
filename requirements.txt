@@ -5,3 +5,6 @@ tqdm
 dotenv
 pymupdf
 openpyxl
+fastapi
+uvicorn
+python-multipart
