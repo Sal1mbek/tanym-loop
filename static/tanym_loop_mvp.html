@@ -88,6 +88,8 @@
   .links a:hover{border-bottom-style:solid}
   /* Rating display */
   .rating-display{font-size:18px;font-weight:700;color:var(--accent);margin-left:8px}
+  .doc-row{display:flex;justify-content:space-between;align-items:center;padding:8px;border-bottom:1px dashed var(--line)}
+  .doc-meta{font-size:13px;color:var(--muted)}
 </style>
 </head>
 <body>
@@ -230,12 +232,19 @@
         <div id="idxOut" style="margin-top:10px"></div>
 
         <div id="dbStats" class="card" style="margin-top: 15px;">
-        <h3>📊 Статистика базы знаний</h3>
-        <div id="statsContent" style="min-height: 50px;">
-            <div class="hint">Нажмите "Обновить статистику" или загрузите файл.</div>
+          <h3>📊 Статистика базы знаний</h3>
+          <div id="statsContent" style="min-height: 50px;">
+              <div class="hint">Нажмите "Обновить статистику" или загрузите файл.</div>
+          </div>
+          <button id="refreshStatsBtn" class="btn" style="margin-top: 10px;">Обновить статистику</button>
+          <button id="rebuildCacheBtn" class="btn" style="margin-left:8px;">Пересобрать кэш</button>
         </div>
-        <button id="refreshStatsBtn" class="btn" style="margin-top: 10px;">Обновить статистику</button>
-    </div>
+        <div class="card" style="margin-top:12px;">
+          <h3>Список загруженных файлов</h3>
+          <div id="uploadedFilesList" style="min-height:80px;">
+            <div class="hint">Файлы появятся здесь после загрузки / индексации.</div>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -255,7 +264,6 @@
   let lastQuestion = "";
   let lastAnswer = "";
 
-  // Tabs
   document.querySelectorAll('.tab-btn').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
@@ -265,12 +273,10 @@
     });
   });
 
-  // Rating display
   document.getElementById('rating')?.addEventListener('input', e=>{
     document.getElementById('ratingVal').textContent = e.target.value;
   });
 
-  // Q&A
   const askBtn = document.getElementById('askBtn');
   const clearBtn = document.getElementById('clearBtn');
 
@@ -300,7 +306,6 @@
 
       ansEl.value = data.answer || "";
 
-      // Метаданные (NEW!)
       if(data.metadata){
         const m = data.metadata;
         metaEl.innerHTML = `
@@ -311,16 +316,13 @@
         `;
       }
 
-      // Источники с улучшенным рендерингом
       srcEl.innerHTML = "";
       if(data.sources_md){
-        // Простой парсинг markdown для отображения
         const lines = data.sources_md.split('\n');
         let html = '';
 
         for(let line of lines){
           if(line.startsWith('### ')){
-            // Извлекаем релевантность
             const match = line.match(/релевантность:\s*(\d+)%/);
             if(match){
               const pct = parseInt(match[1]);
@@ -338,7 +340,6 @@
           } else if(line.startsWith('_') && line.endsWith('_')){
             html += `<em style="color:var(--muted)">${line.replace(/_/g, '')}</em><br>`;
           } else if(line.startsWith('🔗 [')){
-            // Ссылки
             const linkMatch = line.match(/\[([^\]]+)\]\(([^)]+)\)/);
             if(linkMatch){
               html += `<a href="${linkMatch[2]}" target="_blank" style="color:var(--accent)">${line}</a><br>`;
@@ -374,40 +375,105 @@
     lastAnswer = "";
   });
 
-  // Feedback
-  document.getElementById('sendFb')?.addEventListener('click', async ()=>{
-    const rating = document.getElementById('rating').value;
-    const comment = document.getElementById('comment').value;
-    const corr = document.getElementById('corr').value;
-    const fbOut = document.getElementById('fbOut');
+// ======= Обработчик отправки фидбека (заменить текущий sendFb handler) =======
+const sendFbBtn = document.getElementById('sendFb');
+let lastFeedbackKey = null; // локально — предотвращение дублей в одной сессии
 
-    if(!lastQuestion || !lastAnswer){
-      fbOut.textContent = "❌ Сначала задайте вопрос";
-      setTimeout(()=>fbOut.textContent="", 3000);
-      return;
+sendFbBtn?.addEventListener('click', async ()=> {
+  const rating = document.getElementById('rating').value;
+  const comment = document.getElementById('comment').value;
+  const corr = document.getElementById('corr').value.trim();
+  const fbOut = document.getElementById('fbOut');
+
+  if(!lastQuestion || !lastAnswer){
+    fbOut.textContent = "❌ Сначала задайте вопрос";
+    setTimeout(()=>fbOut.textContent="", 4000);
+    return;
+  }
+
+  // локальная защита от одинаковых отправок подряд
+  const feedbackKey = `${lastQuestion}|||${lastAnswer}|||${corr}|||${rating}`;
+  if (feedbackKey === lastFeedbackKey) {
+    fbOut.textContent = "⚠️ Похоже, вы уже отправляли этот отзыв (сессия). Подождите результат.";
+    fbOut.style.color = "var(--yellow)";
+    setTimeout(()=>fbOut.textContent="", 4000);
+    return;
+  }
+
+  // UI: блокировка + сообщение о процессе
+  sendFbBtn.disabled = true;
+  const origBtnText = sendFbBtn.textContent;     // <-- запомним оригинальный текст (исправлено)
+  sendFbBtn.innerHTML = 'Отправка... <span class="spinner"></span>';
+  fbOut.style.color = "var(--muted)";
+  fbOut.textContent = "Проверка правильного ответа...";
+
+  try {
+    const fd = new FormData();
+    fd.append("rating", rating);
+    fd.append("comment", comment);
+    fd.append("correct_answer", corr);
+    fd.append("question", lastQuestion);
+    fd.append("answer", lastAnswer);
+
+    const resp = await fetch(`${API_BASE}/feedback`, { method:"POST", body: fd });
+    if(!resp.ok){
+      const txt = await resp.text().catch(()=>null);
+      throw new Error(`HTTP ${resp.status} ${txt || ''}`);
+    }
+    const data = await resp.json();
+
+    // Показываем содержимое ответа от сервера — с маскированием технических причин
+    let userMsg = data.msg || "OK";
+    // Если сервер вернул техническую причину (например про LLM), нормализуем её
+    const rawReason = data.validation_reason || "";
+    let friendlyReason = "";
+    if (rawReason) {
+      // Маскирование/замена технических сообщений (настройте под ваш бэкэнд)
+      if (/llm/i.test(rawReason) || /недоступн/i.test(rawReason) || /embedd/i.test(rawReason)) {
+        friendlyReason = " (Проверка выполнена автоматически.)";
+      } else {
+        friendlyReason = ` (${rawReason})`;
+      }
     }
 
-    try{
-      const fd = new FormData();
-      fd.append("rating", rating);
-      fd.append("comment", comment);
-      fd.append("correct_answer", corr);
-      fd.append("question", lastQuestion);
-      fd.append("answer", lastAnswer);
+    fbOut.innerHTML = userMsg + (friendlyReason ? ` <span style="color:var(--muted)">${friendlyReason}</span>` : "");
+    fbOut.style.color = data.ok ? "var(--green)" : "var(--red)";
 
-      const resp = await fetch(`${API_BASE}/feedback`, { method:"POST", body: fd });
-      const data = await resp.json();
-      fbOut.textContent = data.msg || "OK";
-      fbOut.style.color = data.ok ? "var(--green)" : "var(--red)";
-    }catch(e){
-      fbOut.textContent = "⚠️ Ошибка";
-      fbOut.style.color = "var(--red)";
-    }finally{
-      setTimeout(()=>fbOut.textContent="", 3000);
+    if (data.correct_answer_saved !== undefined) {
+      if (data.correct_answer_saved) {
+        fbOut.innerHTML += ' <strong style="color:var(--green)">✅ Правильный ответ сохранён</strong>';
+      } else if (data.validation_reason) {
+        // Если validation_reason техничесная — показываем дружелюбный вариант (см. выше)
+        fbOut.innerHTML += ' <span style="color:var(--yellow)">⚠️ ' + (data.validation_reason && !/llm/i.test(data.validation_reason) ? data.validation_reason : 'Правильный ответ не сохранился') + '</span>';
+      }
     }
-  });
 
-  // Drag & Drop
+    // Успешно отправлено — запомним ключ чтобы не отправлять дубль
+    lastFeedbackKey = feedbackKey;
+
+    // очистка формы (как у вас было)
+    if(data.ok){
+      document.getElementById('rating').value = 5;
+      document.getElementById('ratingVal').textContent = 5;
+      document.getElementById('comment').value = "";
+      document.getElementById('corr').value = "";
+    }
+
+  } catch(e) {
+    console.error(e);
+    fbOut.textContent = "⚠️ Ошибка отправки: " + (e.message || e);
+    fbOut.style.color = "var(--red)";
+  } finally {
+    // Восстановим кнопку сразу (и гарантируем восстановление текста)
+    sendFbBtn.disabled = false;
+    sendFbBtn.textContent = origBtnText || "Отправить отзыв";
+    // очищаем сообщение через 8 сек
+    setTimeout(()=>fbOut.textContent="", 8000);
+  }
+});
+
+
+  // Drag & Drop / Indexing (не менял)
   const drop = document.getElementById('drop');
   const fileInput = document.getElementById('fileInput');
   const indexBtn = document.getElementById('indexBtn');
@@ -443,7 +509,6 @@
     fileInput.value = null;
   });
 
-  // Indexing
   indexBtn?.addEventListener('click', async ()=>{
     const sourceTag = document.getElementById('sourceTag').value;
 
@@ -482,6 +547,7 @@
           idxOut.appendChild(el);
         });
         await updateStats();
+        await loadUploadedFiles();
 
         uploadedFiles = [];
         showNames();
@@ -494,67 +560,155 @@
       indexBtn.textContent = "Индексировать";
     }
   });
-  // ====== НОВЫЕ ПЕРЕМЕННЫЕ ДЛЯ СТАТИСТИКИ ======
-const statsContent = document.getElementById('statsContent');
-const refreshStatsBtn = document.getElementById('refreshStatsBtn');
+
+  // Stats functions (как раньше)
+  const statsContent = document.getElementById('statsContent');
+  const refreshStatsBtn = document.getElementById('refreshStatsBtn');
+
+  function renderStats(data) {
+      const db_stats = data.database;
+
+      if (!db_stats || !db_stats.total_documents) {
+          statsContent.innerHTML = `<div class="hint">База данных пуста или недоступна.</div>`;
+          return;
+      }
+
+      let html = `
+          <p><strong>Количество проиндексированных разделов:</strong> ${db_stats.total_documents}</p>
+          <p><strong>Количество уникальных файлов:</strong> ${db_stats.unique_files}</p>
+          <h4>По источникам:</h4>
+          <ul style="margin-top: 5px; list-style-type: none; padding-left: 10px;">
+      `;
+
+      const sources = Object.entries(db_stats.by_source || {});
+      sources.sort(([, countA], [, countB]) => countB - countA);
+
+      sources.forEach(([source, count]) => {
+          html += `<li>• ${source}: <strong>${count}</strong></li>`;
+      });
+
+      html += `</ul>
+          <div class="hint" style="margin-top: 10px;">
+              Эмбеддер: ${data.embedder.model} (${data.embedder.dimension} dim)
+          </div>
+      `;
+      statsContent.innerHTML = html;
+  }
+
+  async function updateStats() {
+      statsContent.innerHTML = 'Загрузка... <span class="spinner"></span>';
+      try {
+          refreshStatsBtn.disabled = true;
+
+          const resp = await fetch(`${API_BASE}/stats`);
+          if (!resp.ok) throw new Error("Не удалось загрузить статистику");
+
+          const data = await resp.json();
+          renderStats(data);
+
+      } catch(e) {
+          statsContent.innerHTML = `<div class="msg err">❌ Ошибка загрузки статистики: ${e.message}</div>`;
+      } finally {
+          refreshStatsBtn.disabled = false;
+      }
+  }
+
+  const rebuildCacheBtn = document.getElementById('rebuildCacheBtn');
+
+rebuildCacheBtn?.addEventListener('click', async () => {
+  if(!confirm("Пересобрать embedded.pkl из текущей БД? Это обновит кэш.")) return;
+  rebuildCacheBtn.disabled = true;
+  rebuildCacheBtn.innerHTML = 'Пересборка... <span class="spinner"></span>';
+  try {
+    const resp = await fetch(`${API_BASE}/rebuild_cache`, { method: 'POST' });
+    if(!resp.ok) throw new Error('Ошибка сервера при пересборке кэша');
+    const data = await resp.json();
+    alert(`Кэш пересобран: ${data.count} записей`);
+    await updateStats();
+    await loadUploadedFiles();
+  } catch(e) {
+    alert('Ошибка: ' + e.message);
+  } finally {
+    rebuildCacheBtn.disabled = false;
+    rebuildCacheBtn.textContent = 'Пересобрать кэш';
+  }
+});
 
 
-// === ФУНКЦИЯ: Отображение статистики ===
-function renderStats(data) {
-    const db_stats = data.database;
+  refreshStatsBtn?.addEventListener('click', updateStats);
+  document.addEventListener('DOMContentLoaded', () => {
+    updateStats();
+    loadUploadedFiles();
+  });
 
-    if (!db_stats || !db_stats.total_documents) {
-        statsContent.innerHTML = `<div class="hint">База данных пуста или недоступна.</div>`;
-        return;
-    }
+  // ====== NEW: Load uploaded files list and deletion ======
+  const uploadedFilesList = document.getElementById('uploadedFilesList');
 
-    let html = `
-        <p><strong>Количество проиндексированных разделов:</strong> ${db_stats.total_documents}</p>
-        <p><strong>Количество уникальных файлов:</strong> ${db_stats.unique_files}</p>
-        <h4>По источникам:</h4>
-        <ul style="margin-top: 5px; list-style-type: none; padding-left: 10px;">
-    `;
-
-    // Сортируем источники по количеству
-    const sources = Object.entries(db_stats.by_source);
-    sources.sort(([, countA], [, countB]) => countB - countA);
-
-    sources.forEach(([source, count]) => {
-        html += `<li>• ${source}: <strong>${count}</strong></li>`;
-    });
-
-    html += `</ul>
-        <div class="hint" style="margin-top: 10px;">
-            Эмбеддер: ${data.embedder.model} (${data.embedder.dimension} dim)
-        </div>
-    `;
-    statsContent.innerHTML = html;
-}
-
-
-// === ФУНКЦИЯ: Запрос и обновление статистики ===
-async function updateStats() {
-    statsContent.innerHTML = 'Загрузка... <span class="spinner"></span>';
+  async function loadUploadedFiles() {
+    uploadedFilesList.innerHTML = 'Загрузка... <span class="spinner"></span>';
     try {
-        refreshStatsBtn.disabled = true;
+      const resp = await fetch(`${API_BASE}/documents`);
+      if (!resp.ok) throw new Error("Не удалось загрузить список");
+      const data = await resp.json();
+      if (!data.ok) throw new Error("Ошибка сервера");
 
-        const resp = await fetch(`${API_BASE}/stats`);
-        if (!resp.ok) throw new Error("Не удалось загрузить статистику");
+      const docs = data.documents || [];
+      if (docs.length === 0) {
+        uploadedFilesList.innerHTML = '<div class="hint">Файлы отсутствуют.</div>';
+        return;
+      }
 
-        const data = await resp.json();
-        renderStats(data);
+      uploadedFilesList.innerHTML = '';
+      docs.forEach(doc => {
+        const row = document.createElement('div');
+        row.className = 'doc-row';
+        const left = document.createElement('div');
+        left.innerHTML = `<strong>${doc.filename && doc.filename.trim() ? doc.filename : '(нет имени файла)'}</strong><div class="doc-meta">${doc.chunks} чанков • ${doc.source || ''}</div>`;
+
+        const right = document.createElement('div');
+        const viewBtn = document.createElement('button');
+        viewBtn.className = 'btn';
+        viewBtn.textContent = 'Просмотреть';
+        viewBtn.addEventListener('click', ()=> {
+          // открываем скачивание
+          window.open(`${API_BASE}/documents/download?filename=${encodeURIComponent(doc.filename)}`, '_blank');
+        });
+
+        const delBtn = document.createElement('button');
+        delBtn.className = 'btn';
+        delBtn.style.marginLeft = '8px';
+        delBtn.textContent = 'Удалить';
+        delBtn.addEventListener('click', async ()=> {
+          if (!confirm(`Удалить все чанки файла "${doc.filename}"?`)) return;
+          try {
+            const fd = new FormData();
+            fd.append('filename', doc.filename);
+            const r = await fetch(`${API_BASE}/documents/delete`, { method: 'POST', body: fd });
+            const res = await r.json();
+            if (res.ok) {
+              await updateStats();
+              await loadUploadedFiles();
+            } else {
+              alert('Ошибка удаления');
+            }
+          } catch(e) {
+            alert('Ошибка: ' + e.message);
+          }
+        });
+
+        right.appendChild(viewBtn);
+        right.appendChild(delBtn);
+
+        row.appendChild(left);
+        row.appendChild(right);
+        uploadedFilesList.appendChild(row);
+      });
 
     } catch(e) {
-        statsContent.innerHTML = `<div class="msg err">❌ Ошибка загрузки статистики: ${e.message}</div>`;
-    } finally {
-        refreshStatsBtn.disabled = false;
+      uploadedFilesList.innerHTML = `<div class="msg err">❌ ${e.message}</div>`;
     }
-}
-// 1. Привязка кнопки к функции обновления
-refreshStatsBtn?.addEventListener('click', updateStats);
+  }
 
-// 2. Автоматическая загрузка статистики при загрузке страницы (КЛЮЧЕВОЙ МОМЕНТ)
-document.addEventListener('DOMContentLoaded', updateStats);
 </script>
 
 </body>

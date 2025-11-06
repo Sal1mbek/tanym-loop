@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Tanym Loop — MVP UI</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="wrap">
+        <header class="header">
+            <div class="logo">TL</div>
+            <div>
+                <div class="h-title">Tanym Loop — локальная RAG-платформа</div>
+                <div class="h-sub">Умный поиск и ответы по вашим документам • данные остаются внутри организации</div>
+            </div>
+
+            <!-- Auth area -->
+            <div id="authArea" style="margin-left:auto;display:flex;align-items:center;gap:8px">
+                <div id="userInfo" style="display:none;align-items:center;gap:8px">
+                    <span id="userEmail" class="hint"></span>
+                    <button id="logoutBtn" class="btn small">Выйти</button>
+                </div>
+
+                <div id="anonArea" style="display:flex;align-items:center;gap:6px">
+                    <button id="showLoginBtn" class="btn small">Вход</button>
+                    <button id="showRegisterBtn" class="btn small">Регистрация</button>
+                </div>
+            </div>
+        </header>
+
+        <nav class="tabs">
+            <button class="tab-btn active" data-tab="welcome">🏠 Приветствие</button>
+            <button class="tab-btn" data-tab="qa">💬 Поиск / Ответ</button>
+            <button class="tab-btn" data-tab="docs">📂 Документы</button>
+        </nav>
+
+        <div id="systemMessage" class="system-message" style="display:none;padding:15px;background:#fffbe6;border:1px solid #ffe58f;border-radius:4px;margin-bottom:15px"></div>
+
+        <!-- Auth modal: compact sign-in / sign-up -->
+        <div id="authModal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="authModalTitle">
+          <div class="modal-card auth-card" role="document">
+            <button type="button" class="auth-close" id="authCloseBtn" aria-label="Закрыть">&times;</button>
+
+            <div class="auth-switch">
+              <button id="switchToLogin" class="auth-switch-btn active" type="button">Вход</button>
+              <button id="switchToRegister" class="auth-switch-btn" type="button">Регистрация</button>
+            </div>
+
+            <div id="authFormsWrap">
+              <!-- LOGIN -->
+              <form id="loginForm" class="auth-form" data-mode="login" onsubmit="return false;">
+                <h3 id="authModalTitle">Вход</h3>
+                <div id="authError" class="auth-error" style="display:none"></div>
+
+                <label for="authEmail">Email</label>
+                <input id="authEmail" type="email" autocomplete="username" placeholder="you@example.com" required>
+
+                <label for="authPassword">Пароль</label>
+                <input id="authPassword" type="password" autocomplete="current-password" placeholder="Пароль" required>
+
+                <div class="row" style="justify-content:flex-end;margin-top:12px">
+                  <button id="authCancelBtn" type="button" class="btn">Отмена</button>
+                  <button id="authSubmitBtn" type="button" class="btn primary">Войти</button>
+                </div>
+              </form>
+
+              <!-- REGISTER -->
+              <form id="registerForm" class="auth-form" data-mode="register" style="display:none" onsubmit="return false;">
+                <h3>Регистрация</h3>
+                <div id="regError" class="auth-error" style="display:none"></div>
+
+                <label for="authName">Имя</label>
+                <input id="authName" type="text" autocomplete="name" placeholder="Иван Иванов" required>
+
+                <label for="regEmail">Email</label>
+                <input id="regEmail" type="email" autocomplete="email" placeholder="you@example.com" required>
+
+                <label for="regPassword">Пароль</label>
+                <input id="regPassword" type="password" autocomplete="new-password" placeholder="Пароль" required>
+
+                <div class="row" style="justify-content:flex-end;margin-top:12px">
+                  <button id="regCancelBtn" type="button" class="btn">Отмена</button>
+                  <button id="regSubmitBtn" type="button" class="btn primary">Зарегистрироваться</button>
+                </div>
+              </form>
+            </div>
+
+            <div style="margin-top:12px;font-size:13px;color:var(--muted);text-align:center">
+              <small>Данные хранятся локально в организации</small>
+            </div>
+          </div>
+        </div>
+
+        <section id="welcome" class="panel active">
+            <div class="grid">
+                <div class="hero">
+                    <h1>Добро пожаловать в Tanym Loop</h1>
+                    <p>Самообучающаяся RAG-система: точные ответы на основе ваших документов.</p>
+                    <ul>
+                        <li>Локально и безопасно — данные не покидают периметр</li>
+                        <li>Казахстанский контекст — законы, госуслуги, внутренние регламенты</li>
+                        <li>Самообучение — качество ответов растёт с обратной связью</li>
+                    </ul>
+                    <div class="row" style="margin-top:6px">
+                        <span class="pill">🔒 Конфиденциально</span>
+                        <span class="pill">🧠 Self-learning</span>
+                        <span class="pill">📚 RAG</span>
+                    </div>
+                </div>
+                <div class="card">
+                    <h3>Как начать</h3>
+                    <ol style="margin:6px 0 0">
+                        <li>Откройте вкладку «Документы» и загрузите файлы</li>
+                        <li>Перейдите в «Поиск / Ответ» и задайте вопрос</li>
+                        <li>Оставляйте обратную связь для улучшения системы</li>
+                    </ol>
+                    <div style="margin-top:12px;padding:10px;background:#f0f9ff;border-radius:8px;font-size:13px">
+                        <strong>💡 Совет:</strong> Чем больше документов загружено, тем точнее ответы!
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="qa" class="panel">
+            <div class="card">
+                <h2>Вопрос / Ответ</h2>
+                <div class="grid" style="margin-top:8px">
+                    <div>
+                        <label for="q">Введите вопрос</label>
+                        <textarea id="q" placeholder="Например: Как оформить доверенность у нотариуса?"></textarea>
+                        <div class="row" style="margin-top:8px">
+                            <label class="row" style="gap:6px;margin:0;cursor:pointer">
+                                <input id="showSimilar" type="checkbox" checked />
+                                <span>Показывать источники</span>
+                            </label>
+                            <button id="askBtn" class="btn primary">Задать вопрос</button>
+                            <button id="clearBtn" class="btn">Очистить</button>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="ans">Ответ ассистента</label>
+                        <textarea id="ans" readonly placeholder="💡 Здесь появится ответ ассистента."></textarea>
+                        <div id="ansMetadata" class="hint" style="margin-top:6px"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>📚 Использованные источники</h3>
+                <div id="sources" class="sources">
+                    <div class="hint">Здесь будут показаны источники и метрики релевантности.</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>✍️ Обратная связь</h3>
+                <div class="grid" style="margin-top:6px">
+                    <div>
+                        <label for="rating">Оценка ответа: <span id="ratingVal" class="rating-display">5</span></label>
+                        <input id="rating" type="range" min="1" max="5" value="5" />
+                    </div>
+                    <div>
+                        <label for="corr">Правильный ответ (опционально)</label>
+                        <input id="corr" type="text" placeholder="Введите корректный вариант" />
+                    </div>
+                </div>
+                <label for="comment" style="margin-top:6px">Комментарий</label>
+                <input id="comment" type="text" placeholder="Что было полезно, чего не хватило…" />
+                <div class="row" style="margin-top:8px">
+                    <button id="sendFb" class="btn">Отправить отзыв</button>
+                    <span id="fbOut" class="hint"></span>
+                </div>
+            </div>
+        </section>
+
+        <section id="docs" class="panel">
+            <div class="card">
+                <h2>База знаний организации</h2>
+                <div class="grid" style="margin-top:8px">
+                    <div>
+                        <div id="drop" class="drop" tabindex="0">
+                            <div style="font-weight:600">📁 Перетащите файлы сюда</div>
+                            <div class="hint">Поддержка: PDF, DOCX, TXT, XLSX</div>
+                            <div class="hint">Или нажмите для выбора</div>
+                            <input id="fileInput" type="file" multiple style="display:none"
+                                   accept=".pdf,.docx,.xlsx,.xls,.txt" />
+                        </div>
+                        <div class="row" style="margin-top:8px">
+                            <select id="sourceTag" class="btn">
+                                <option value="user">👤 user (пользователь)</option>
+                                <option value="dataset">📊 dataset (база)</option>
+                                <option value="other">📂 other (другое)</option>
+                            </select>
+                            <button id="indexBtn" class="btn primary">Индексировать</button>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="card" style="border:none;padding:0">
+                            <h3>💡 Рекомендации</h3>
+                            <ul style="margin:6px 0 0;font-size:13px">
+                                <li>Избегайте сканов без OCR</li>
+                                <li>Структурированные документы (со "Статья X") обрабатываются лучше</li>
+                                <li>Оптимальный размер файла: до 10 МБ</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="fileList" class="hint" style="margin-top:10px"></div>
+                <div id="idxOut" style="margin-top:10px"></div>
+
+                <div id="dbStats" class="card" style="margin-top: 15px;">
+                    <h3>📊 Статистика базы знаний</h3>
+                    <div id="statsContent" style="min-height: 50px;">
+                        <div class="hint">Нажмите "Обновить статистику" или загрузите файл.</div>
+                    </div>
+                    <button id="refreshStatsBtn" class="btn" style="margin-top: 10px;">Обновить статистику</button>
+                    <button id="rebuildCacheBtn" class="btn" style="margin-left:8px;">Пересобрать кэш</button>
+                </div>
+                <div class="card" style="margin-top:12px;">
+                    <h3>Список загруженных файлов</h3>
+                    <div id="uploadedFilesList" style="min-height:80px;">
+                        <div class="hint">Файлы появятся здесь после загрузки / индексации.</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <footer class="footer">
+            <div>© 2025 True Masters • Tanym Loop v0.2</div>
+            <div class="links">
+                <a href="https://truemasters.kz" target="_blank" rel="noopener">Tanym Loop</a> ·
+                <a href="mailto:truemasters@inbox.ru">Связаться</a> ·
+                <a href="/stats" target="_blank">Статистика</a>
+            </div>
+        </footer>
+    </div>
+
+
+    <script src="/static/app2.js"></script>
+</body>
+</html>
