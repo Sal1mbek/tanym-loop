@@ -60,8 +60,17 @@ class VectorStore:
             try:
                 # 1. Проверка на дубликат по title и content
                 with self.conn.cursor() as cur:
-                    cur.execute("SELECT 1 FROM documents WHERE title = %s AND content = %s LIMIT 1",
-                                (article["title"], article["text"]))
+                    if owner_id is not None:
+                        cur.execute(
+                            "SELECT 1 FROM documents WHERE title = %s AND content = %s AND owner_id = %s LIMIT 1",
+                            (article["title"], article["text"], owner_id)
+                        )
+                    else:
+                        cur.execute(
+                            "SELECT 1 FROM documents WHERE title = %s AND content = %s LIMIT 1",
+                            (article["title"], article["text"])
+                        )
+
                     if cur.fetchone():
                         skipped_count += 1
                         continue
