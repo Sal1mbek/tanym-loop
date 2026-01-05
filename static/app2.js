@@ -412,6 +412,154 @@ askBtn?.addEventListener('click', async ()=>{
   }
 });
 
+// ====== ГОЛОСОВОЙ ВВОД (Speech-to-Text) ======
+
+const micBtn = document.getElementById("micBtn");
+const voiceStatus = document.getElementById("voiceStatus");
+let mediaRecorder = null;
+let audioChunks = [];
+
+function showVoiceStatus(message, isError = false) {
+  if (!voiceStatus) return;
+  voiceStatus.textContent = message;
+  voiceStatus.style.display = "block";
+  voiceStatus.style.color = isError ? "var(--red)" : "var(--accent)";
+
+  if (!isError) {
+    setTimeout(() => {
+      voiceStatus.style.display = "none";
+    }, 5000);
+  }
+}
+
+micBtn?.addEventListener("click", async () => {
+  // Если уже идет запись - останавливаем
+  if (mediaRecorder && mediaRecorder.state === "recording") {
+    mediaRecorder.stop();
+    micBtn.textContent = "⏳";
+    micBtn.disabled = true;
+    micBtn.title = "Обработка записи...";
+    showVoiceStatus("⏳ Обработка записи...");
+    return;
+  }
+
+  // Начинаем новую запись
+  try {
+    // Запрашиваем доступ к микрофону
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true
+      }
+    });
+
+    // Создаем MediaRecorder
+    const options = { mimeType: 'audio/webm' };
+    if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+      options.mimeType = 'audio/ogg'; // Fallback для Safari
+    }
+
+    mediaRecorder = new MediaRecorder(stream, options);
+    audioChunks = [];
+
+    // Собираем аудио-чанки
+    mediaRecorder.ondataavailable = (event) => {
+      if (event.data.size > 0) {
+        audioChunks.push(event.data);
+      }
+    };
+
+    // Когда запись остановлена - отправляем на сервер
+    mediaRecorder.onstop = async () => {
+      // Останавливаем микрофон
+      stream.getTracks().forEach(track => track.stop());
+
+      // Создаем blob из чанков
+      const audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType });
+
+      showVoiceStatus("🔄 Распознавание речи...");
+
+      // Отправляем на сервер
+      try {
+        const formData = new FormData();
+        const fileExtension = mediaRecorder.mimeType.includes('webm') ? 'webm' : 'ogg';
+        formData.append('audio', audioBlob, `recording.${fileExtension}`);
+
+        const resp = await authFetch(`${API_BASE}/voice/stt`, {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!resp.ok) {
+          const errorText = await resp.text().catch(() => '');
+          throw new Error(errorText || `HTTP ${resp.status}`);
+        }
+
+        const data = await resp.json();
+
+        if (data.ok && data.text) {
+          // Вставляем распознанный текст в поле вопроса
+          const qField = document.getElementById("q");
+          qField.value = data.text;
+          qField.focus();
+
+          // Показываем уведомление с точностью
+          const confPct = Math.round((data.confidence || 0.8) * 100);
+          const previewText = data.text.length > 50 ? data.text.substring(0, 50) + '...' : data.text;
+          showVoiceStatus(`✅ Распознано (${confPct}% уверенность): "${previewText}"`);
+
+        } else {
+          showVoiceStatus(data.message || "❌ Не удалось распознать речь. Попробуйте говорить четче.", true);
+        }
+
+      } catch (e) {
+        console.error("STT Error:", e);
+
+        if (e && (e.message === "not_authenticated" || e.message === "unauthorized")) {
+          showVoiceStatus("🔐 Войдите в систему для использования голосового ввода.", true);
+        } else {
+          showVoiceStatus("❌ Ошибка распознавания: " + (e.message || "Неизвестная ошибка"), true);
+        }
+      } finally {
+        micBtn.disabled = false;
+        micBtn.textContent = "🎙️";
+        micBtn.title = "Голосовой ввод: нажмите для записи";
+        micBtn.classList.remove("recording");
+      }
+    };
+
+    // Начинаем запись
+    mediaRecorder.start();
+    micBtn.textContent = "⏹️"; // Иконка остановки
+    micBtn.title = "Идёт запись... Нажмите чтобы остановить";
+    micBtn.classList.add("recording");
+    showVoiceStatus("🔴 Запись... Говорите ваш вопрос (макс. 30 сек)");
+
+    // Автоостановка через 30 секунд (защита от зависания)
+    setTimeout(() => {
+      if (mediaRecorder && mediaRecorder.state === "recording") {
+        showVoiceStatus("⏱️ Достигнут лимит времени записи (30 сек)");
+        mediaRecorder.stop();
+      }
+    }, 30000);
+
+  } catch (e) {
+    console.error("Microphone access error:", e);
+
+    if (e.name === "NotAllowedError") {
+      showVoiceStatus("❌ Доступ к микрофону запрещён. Разрешите доступ в настройках браузера.", true);
+    } else if (e.name === "NotFoundError") {
+      showVoiceStatus("❌ Микрофон не найден. Подключите микрофон и обновите страницу.", true);
+    } else {
+      showVoiceStatus("❌ Ошибка доступа к микрофону: " + e.message, true);
+    }
+
+    micBtn.textContent = "🎙️";
+    micBtn.classList.remove("recording");
+  }
+});
+
 // --- 4. Q&A Logic (Clear Button) ---
 clearBtn?.addEventListener('click', ()=>{
   document.getElementById('q').value = "";

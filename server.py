@@ -20,6 +20,8 @@ from rag.vectorstore import VectorStore
 from rag.feedback_store import FeedbackStore
 from rag.generator import Generator
 import rag.loader as loader
+from voicing.api import router as voicing_router
+
 import pickle
 
 APP_PORT = int(os.environ.get("PORT", "8000"))
@@ -166,6 +168,7 @@ for src, cnt in db_stats['by_source'].items():
 print("=" * 60)
 
 app = FastAPI(title="Tanym Loop API", version="0.3")
+app.include_router(voicing_router)
 
 app.add_middleware(
     CORSMiddleware,
