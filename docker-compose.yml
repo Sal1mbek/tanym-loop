@@ -1,0 +1,87 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: tanym-loop-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: raglaw
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ss123
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d raglaw"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - tanym-loop
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: tanym-loop-ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - tanym-loop
+
+  app:
+    build: .
+    container_name: tanym-loop-app
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=raglaw
+      - DB_USER=postgres
+      - DB_PASSWORD=ss123
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - PORT=8000
+      - JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
+      - EMAIL_HOST=mail.truemasters.kz
+      - EMAIL_PORT=465
+      - EMAIL_USE_SSL=true
+      - EMAIL_HOST_USER=support@truemasters.kz
+      - EMAIL_HOST_PASSWORD=83*diUf17
+      - DEFAULT_FROM_EMAIL=Tanym Loop <support@truemasters.kz>
+      - FRONTEND_APP_URL=http://localhost:8000
+    volumes:
+      - ./data:/app/data
+      - ./embedded.pkl:/app/embedded.pkl
+      - ./logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+    networks:
+      - tanym-loop
+
+volumes:
+  postgres_data:
+    driver: local
+  ollama_data:
+    driver: local
+
+networks:
+  tanym-loop:
+    driver: bridge
