@@ -1,4 +1,7 @@
 import os
+from dotenv import load_dotenv
+load_dotenv()
+
 import json
 from typing import List, Optional
 import requests
@@ -195,14 +198,14 @@ def root():
 def register(email: str = Form(...), password: str = Form(...), name: str = Form(None)):
     pw_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
     # Подтверждение
-    verification_token = generate_verification_token()
-    token_created_at = datetime.datetime.utcnow()
+    #verification_token = generate_verification_token()
+    #token_created_at = datetime.datetime.utcnow()
 
     try:
         with store.conn.cursor() as cur:
             cur.execute(
-                "INSERT INTO users (email, password_hash, name, verification_token, token_created_at) VALUES (%s, %s, %s, %s, %s) RETURNING id",
-                (email, pw_hash, name, verification_token, token_created_at)
+                "INSERT INTO users (email, password_hash, name, is_verified) VALUES (%s, %s, %s, TRUE) RETURNING id",
+                (email, pw_hash, name)
             )
             uid = cur.fetchone()[0]
         store.conn.commit()
@@ -212,13 +215,13 @@ def register(email: str = Form(...), password: str = Form(...), name: str = Form
             raise HTTPException(status_code=400, detail="Этот email уже зарегистрирован.")
         raise HTTPException(status_code=400, detail=f"Registration failed: {e}")
 
-    email_sent = send_verification_email(email, verification_token, name)
+    # email_sent = send_verification_email(email, verification_token, name)
 
     return {
         "ok": True,
         "user_id": uid,
-        "message": "Регистрация успешна! Проверьте почту для подтверждения аккаунта.",
-        "email_sent": email_sent
+        "message": "Регистрация успешна! Можете войти в систему."
+        #"email_sent": email_sent
     }
 
 

@@ -234,7 +234,7 @@ async function performRegister(name, email, pass) {
     const data = await resp.json().catch(()=>null);
     if (!resp.ok) throw new Error(data?.detail || data?.error || JSON.stringify(data) || `HTTP ${resp.status}`);
     closeAuthModal();
-    showSystemMessage(data.message || "Регистрация успешна. Проверьте почту для подтверждения аккаунта.", 'info');
+    showSystemMessage(data.message || "Регистрация успешна. Можете войти.", 'success');
   } catch (err) {
     console.error("Register error:", err);
     if (regError) {

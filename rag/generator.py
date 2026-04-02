@@ -1,6 +1,7 @@
 import requests
 import json
 import re
+import os
 from typing import List, Optional
 
 from rag.feedback_store import FeedbackStore
@@ -22,10 +23,10 @@ def detect_language(text: str) -> str:
 
 
 class Generator:
-    def __init__(self, model_name="llama3:8b-instruct-q4_0", base_url="http://localhost:11434",
+    def __init__(self, model_name="llama3:8b-instruct-q4_0", base_url=None,
                  embedder: Embedder = None, feedback_store: FeedbackStore = None):
         self.model = model_name
-        self.base_url = base_url
+        self.base_url = base_url or os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
         self.feedback_store = feedback_store or FeedbackStore()
         self.embedder = embedder or Embedder()
 

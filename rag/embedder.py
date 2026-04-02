@@ -1,3 +1,8 @@
+import os
+os.environ["TRANSFORMERS_OFFLINE"] = "1"
+os.environ["HF_DATASETS_OFFLINE"] = "1"
+os.environ["HF_HUB_OFFLINE"] = "1"
+
 from sentence_transformers import SentenceTransformer
 from typing import List, Dict
 from tqdm import tqdm

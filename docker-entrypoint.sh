@@ -11,24 +11,16 @@ done
 echo "PostgreSQL is ready!"
 
 echo "Waiting for Ollama..."
-until curl -s http://ollama:11434/api/tags > /dev/null; do
+until curl -s http://ollama:11434/api/tags > /dev/null 2>&1; do
   echo "Ollama is unavailable - sleeping"
   sleep 5
 done
 echo "Ollama is ready!"
 
-echo "Checking for required models..."
-if ! ollama list | grep -q "llama3:8b-instruct-q4_0"; then
-  echo "Pulling llama3:8b-instruct-q4_0..."
-  ollama pull llama3:8b-instruct-q4_0
-fi
-
-if ! ollama list | grep -q "llama3:latest"; then
-  echo "Pulling llama3:latest..."
-  ollama pull llama3
-fi
-
-echo "All models ready!"
+echo "Pulling model llama3:8b-instruct-q4_0 via API..."
+curl -s http://ollama:11434/api/pull \
+  -H "Content-Type: application/json" \
+  -d '{"name":"llama3:8b-instruct-q4_0"}' || echo "Warning: pull failed or model exists"
 
 mkdir -p /app/data/uploads /app/logs
 
