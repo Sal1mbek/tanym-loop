@@ -26,7 +26,8 @@ try:
     whisper_model = WhisperModel(
         WHISPER_MODEL_SIZE,
         device=WHISPER_DEVICE,
-        compute_type=WHISPER_COMPUTE_TYPE
+        compute_type=WHISPER_COMPUTE_TYPE,
+	download_root=os.getenv("HF_HOME", "app/models_cache") + "/whisper"
     )
     print("✅ Whisper модель загружена")
 except Exception as e:

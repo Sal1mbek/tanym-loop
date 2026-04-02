@@ -49,6 +49,9 @@ services:
     ports:
       - "8000:8000"
     environment:
+      - HF_HUB_OFFLINE=1
+      - TRANSFORMERS_OFFLINE=1
+      - HF_HOME=/app/models_cache
       - DB_HOST=postgres
       - DB_PORT=5432
       - DB_NAME=raglaw
@@ -64,6 +67,9 @@ services:
       - EMAIL_HOST_PASSWORD=83*diUf17
       - DEFAULT_FROM_EMAIL=Tanym Loop <support@truemasters.kz>
       - FRONTEND_APP_URL=http://localhost:8000
+      - WHISPER_MODEL_SIZE=large-v3
+      - WHISPER_DEVICE=cpu
+      - WHISPER_COMPUTE_TYPE=int8
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs

@@ -857,4 +857,4 @@ if __name__ == "__main__":
     print(f"📱 UI доступен по http://localhost:{APP_PORT}/")
     print(f"📊 Статистика: http://localhost:{APP_PORT}/stats")
     print(f"💚 Health check: http://localhost:{APP_PORT}/health\n")
-    uvicorn.run("server:app", host="localhost", port=APP_PORT, reload=True)
+    uvicorn.run("server:app", host="0.0.0.0", port=APP_PORT, reload=True)

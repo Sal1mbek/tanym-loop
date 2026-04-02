@@ -2,6 +2,7 @@ import os
 os.environ["TRANSFORMERS_OFFLINE"] = "1"
 os.environ["HF_DATASETS_OFFLINE"] = "1"
 os.environ["HF_HUB_OFFLINE"] = "1"
+# os.environ["HF_HOME"] = "/app/models_cache"
 
 from sentence_transformers import SentenceTransformer
 from typing import List, Dict
@@ -12,14 +13,18 @@ import numpy as np
 class Embedder:
     def __init__(self, model_name: str = "paraphrase-multilingual-MiniLM-L12-v2"):
         """
-            Инициализация эмбеддера.
-
-            Рекомендуемые модели:
-            - all-MiniLM-L6-v2 (384 dim) - быстрая, хорошо для общих задач
-            - paraphrase-multilingual-MiniLM-L12-v2 (384 dim) - лучше для русского/казахского
-            - all-mpnet-base-v2 (768 dim) - точнее, но медленнее
+        Инициализация эмбеддера.
+        Рекомендуемые модели:
+        - all-MiniLM-L6-v2 (384 dim) - быстрая, хорошо для общих задач
+        - paraphrase-multilingual-MiniLM-L12-v2 (384 dim) - лучше для русского/казахского
+        - all-mpnet-base-v2 (768 dim) - точнее, но медленнее
         """
-        self.model = SentenceTransformer(model_name)
+        cache_folder = os.getenv("HF_HOME", None)
+        self.model = SentenceTransformer(
+            model_name,
+            cache_folder=cache_folder,
+            local_files_only=True
+        )
         self.embedding_dim = self.model.get_sentence_embedding_dimension()
         print(f"✅ Embedder инициализирован: {model_name} (размерность: {self.embedding_dim})")
 

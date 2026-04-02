@@ -43,6 +43,17 @@ class VectorStore:
                     USING ivfflat (embedding vector_cosine_ops)
                     WITH (lists = 100);
                 """)
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS users (
+                        id SERIAL PRIMARY KEY,
+                        email VARCHAR(255) UNIQUE NOT NULL,
+                        password_hash VARCHAR(255) NOT NULL,
+                        name VARCHAR(255),
+                        is_verified BOOLEAN DEFAULT FALSE,
+                        verification_token VARCHAR(255),
+                        token_created_at TIMESTAMP WITHOUT TIME ZONE
+                    );
+                """)
             self.conn.commit()
             print("✅ Таблица 'documents' и расширение 'vector' инициализированы.")
         except psycopg2.Error as e:
