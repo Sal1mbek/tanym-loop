@@ -13,15 +13,14 @@ RUN apt-get update && apt-get install -y \
     postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
-RUN curl -fsSL https://ollama.ai/install.sh | sh
 
 RUN useradd --create-home --shell /bin/bash app
 
 WORKDIR /app
 
-COPY requirements.txt .
+COPY requirements-docker.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+    pip install --no-cache-dir -r requirements-docker.txt
 
 COPY . .
 
