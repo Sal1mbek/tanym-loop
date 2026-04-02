@@ -32,6 +32,9 @@ RUN mkdir -p /app/data/uploads /app/static /app/logs
 
 RUN chown -R app:app /app
 
+RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')"
+RUN python -c "from faster_whisper import WhisperModel; WhisperModel('large-v3', device='cpu', compute_type='int8')"
+
 USER app
 
 EXPOSE 8000
